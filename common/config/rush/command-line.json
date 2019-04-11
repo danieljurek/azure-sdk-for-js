@@ -127,6 +127,12 @@
       "name": "pack",
       "summary": "Pack projects",
       "enableParallelism": true
+    },
+    {
+      "commandKind": "global",
+      "name": "sync-versions",
+      "summary": "Sync versions among projects",
+      "shellCommand": "node common/scripts/sync-versions.js"
     }
   ],
 
@@ -223,5 +229,11 @@
     //     }
     //   ]
     // }
+    {
+      "parameterKind": "flag",
+      "longName": "--sync-peers",
+      "description": "Also sync peer dependency versions with those in the working directory.",
+      "associatedCommands": [ "sync-versions" ]
+    }
   ]
 }
