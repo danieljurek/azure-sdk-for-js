@@ -32,10 +32,10 @@ steps:
     inputs:
       testRunTitle: "${{ parameters.OSName }} - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"
 
-      ${{ if eq(parameters.TestType, 'browser' )}}:
+      ${{ if eq(parameters.TestType, 'browser' ) }}:
         testResultsFiles: "**/test-results.browser.xml"
       ${{ if eq(parameters.TestType, 'node') }}:
         testResultsFiles: "**/test-results.xml"
 
     condition: succeededOrFailed()
-    displayName: "Publish node test results"
+    displayName: "Publish Test Results: ${{ parameters.OSName }} - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"
