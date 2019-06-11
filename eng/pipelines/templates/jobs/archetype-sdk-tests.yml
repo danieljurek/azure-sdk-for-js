@@ -27,6 +27,8 @@ jobs:
     variables:
       - template: ../variables/globals.yml
       - template: ../variables/matrix-generator.yml
+        parameters:
+          Matrix: ${{ parameters.Matrix }}
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
       matrix: $(GeneratedMatrix)
