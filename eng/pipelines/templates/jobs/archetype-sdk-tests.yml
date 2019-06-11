@@ -24,10 +24,11 @@ jobs:
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
       matrix:
-        ${{ each TestTarget in parameters.TestTargets }}:
-          ${{ each Entry in parameters.Matrix }}:
-            ${{ Entry.key }}_${{ TestTarget }}: ${{ Entry.value }}
-
+        ${{ each testTarget in parameters.TestTargets }}:
+          ${{ each matrixEntry in parameters.Matrix }}:
+            ${{ matrixEntry.key }}_${{ testTarget }}:
+              TestTarget: ${{ testTarget }}
+              ${{ matrixEntry }}
     pool:
       vmImage: "$(OSVmImage)"
 
@@ -43,6 +44,6 @@ jobs:
       - task: PublishTestResults@2
         inputs:
           testResultsFiles: "**/test-results.xml"
-          testRunTitle: "$(OSName) Live Tests - $(TestType) Node $(NodeVersion)"
+          testRunTitle: "$(OSName) Live Tests - $(TestTarget) Node $(NodeVersion)"
         condition: succeededOrFailed()
         displayName: "Publish node test results"
