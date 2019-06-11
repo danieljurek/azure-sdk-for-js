@@ -1,0 +1,10 @@
+parameters:
+  OSVmImage: ""
+
+variables:
+  ${{ if eq(parameters.OSVmImage, 'ubuntu-16.04') }}:
+    OSName: "Linux"
+  ${{ if eq(parameters.OSVmImage, 'vs2017-win2016') }}:
+    OSName: "Windows"
+  ${{ if eq(parameters.OSVmImage, 'macOS-10.13') }}:
+    OSName: "Mac"

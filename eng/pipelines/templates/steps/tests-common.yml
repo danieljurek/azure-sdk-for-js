@@ -1,0 +1,40 @@
+parameters:
+  NodeVersion: ""
+  PackageName: ""
+  TestType: ""
+  EnvVars: []
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "${{ parameters.NodeVersion }}"
+    displayName: "Install Node.js ${{ parameters.NodeVersion }}"
+
+  - script: |
+      node common/scripts/install-run-rush.js install
+    displayName: "Install dependencies"
+
+  - script: |
+      node common/scripts/install-run-rush.js build -t "${{parameters.PackageName}}" --verbose
+    displayName: 'rush build -t "${{parameters.PackageName}}"'
+
+  - script: |
+      node common/scripts/install-run-rush.js build:test -t "${{parameters.PackageName}}" --verbose
+    displayName: 'rush build:test -t "${{parameters.PackageName}}"'
+
+  - script: |
+      node common/scripts/install-run-rush.js integration-test:${{ parameters.TestType }} -t "${{parameters.PackageName}}" --verbose
+    displayName: 'rush integration-test:${{ parameters.TestType }} -t "${{parameters.PackageName}}"'
+    env: ${{ parameters.EnvVars }}
+
+  - task: PublishTestResults@2
+    inputs:
+      testRunTitle: "$(OSName) - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"
+
+      ${{ if eq(parameters.TestType, 'browser' )}}:
+        testResultsFiles: "**/test-results.browser.xml"
+      ${{ if eq(parameters.TestType, 'node') }}:
+        testResultsFiles: "**/test-results.xml"
+
+    condition: succeededOrFailed()
+    displayName: "Publish node test results"

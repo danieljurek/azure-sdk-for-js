@@ -4,40 +4,31 @@ parameters:
   MaxParallel: 0
   Matrix:
     Linux_Node10X:
-      OSName: "Linux"
       OSVmImage: "ubuntu-16.04"
       TestType: "node"
-      TestResultsFiles: "**/test-results.xml"
     Windows_Node10X:
-      OSName: "Windows"
       OSVmImage: "vs2017-win2016"
       TestType: "node"
-      TestResultsFiles: "**/test-results.xml"
     Mac_Node10X:
-      OSName: "Mac"
       OSVmImage: "macOS-10.13"
       TestType: "node"
-      TestResultsFiles: "**/test-results.xml"
     Browser_Linux_Node10X:
-      OSName: "Linux"
       OSVmImage: "ubuntu-16.04"
       TestType: "browser"
-      TestResultsFiles: "**/test-results.browser.xml"
     Browser_Windows_Node10X:
-      OSName: "Windows"
       OSVmImage: "vs2017-win2016"
       TestType: "browser"
-      TestResultsFiles: "**/test-results.browser.xml"
     Browser_Mac_Node10X:
-      OSName: "Mac"
       OSVmImage: "macOS-10.13"
       TestType: "browser"
-      TestResultsFiles: "**/test-results.browser.xml"
 
 jobs:
   - job: "Test"
     variables:
       - template: ../variables/globals.yml
+      - template: ../variables/os-name.yml
+        parameters:
+          OSVmImage: $(OSVmImage)
 
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
@@ -49,31 +40,10 @@ jobs:
     timeoutInMinutes: 240
 
     steps:
-      - task: NodeTool@0
-        inputs:
-          versionSpec: "$(NodeVersion)"
-        displayName: "Install Node.js $(NodeVersion)"
-
-      - script: |
-          node common/scripts/install-run-rush.js install
-        displayName: "Install dependencies"
-
-      - script: |
-          node common/scripts/install-run-rush.js build -t "${{parameters.PackageName}}" --verbose
-        displayName: 'rush build -t "${{parameters.PackageName}}"'
-
-      - script: |
-          node common/scripts/install-run-rush.js build:test -t "${{parameters.PackageName}}" --verbose
-        displayName: 'rush build:test -t "${{parameters.PackageName}}"'
-
-      - script: |
-          node common/scripts/install-run-rush.js integration-test:$(TestType) -t "${{parameters.PackageName}}" --verbose
-        displayName: 'rush integration-test:$(TestType) -t "${{parameters.PackageName}}"'
-        env: ${{ parameters.EnvVars }}
-
-      - task: PublishTestResults@2
-        inputs:
-          testResultsFiles: $(TestResultsFiles)
-          testRunTitle: "$(OSName) - $(TestType) - Tests [Node $(NodeVersion)]"
-        condition: succeededOrFailed()
-        displayName: "Publish node test results"
+      - template: ../steps/tests-common.yml
+        parameters:
+          NodeVersion: $(NodeVersion)
+          PackageName: ${{ parameters.PackageName }}
+          TestType: $(TestType)
+          EnvVars: ${{ parameters.EnvVars }}
+          OSVmImage: $(OSVmImage)
