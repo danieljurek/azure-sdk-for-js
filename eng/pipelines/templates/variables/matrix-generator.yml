@@ -3,7 +3,7 @@ parameters:
 
 variables:
   GeneratedMatrix:
-    ${{ each matrixEntry in parameters.Matrix }}:
+    - ${{ each matrixEntry in parameters.Matrix }}:
       # TestResultsFiles
       ${{ if eq(matrixEntry.TestType, 'browser' )}}:
         TestResultsFiles: "**/test-results.browser.xml"
