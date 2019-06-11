@@ -1,4 +1,7 @@
 parameters:
+  TestTargets:
+    - node
+    - browser
   PackageName: ""
   EnvVars:
     ACCOUNT_NAME: $(js-storage-test-account-name)
@@ -43,14 +46,9 @@ parameters:
       NodeVersion: "12.x"
 
 jobs:
-  - template: ../../eng/pipelines/templates/jobs/archetype-sdk-tests-node.yml
+  - template: ../../eng/pipelines/templates/jobs/archetype-sdk-tests.yml
     parameters:
       EnvVars: ${{ parameters.EnvVars }}
       PackageName: ${{ parameters.PackageName }}
       Matrix: ${{ parameters.Matrix }}
-
-  - template: ../../eng/pipelines/templates/jobs/archetype-sdk-tests-browser.yml
-    parameters:
-      EnvVars: ${{ parameters.EnvVars }}
-      PackageName: ${{ parameters.PackageName }}
-      Matrix: ${{ parameters.Matrix }}
+      TestTargets: ${{ parameters.TestTargets }}

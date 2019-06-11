@@ -4,6 +4,9 @@ jobs:
   - template: ../../../eng/pipelines/templates/jobs/archetype-sdk-tests-node.yml
     parameters:
       PackageName: "@azure/service-bus"
+      TestTargets:
+        - node
+        - browser
       EnvVars:
         AAD_CLIENT_ID: $(aad-azure-sdk-test-client-id)
         AAD_TENANT_ID: $(aad-azure-sdk-test-tenant-id)

@@ -45,6 +45,6 @@ jobs:
       - task: PublishTestResults@2
         inputs:
           testResultsFiles: "**/test-results.xml"
-          testRunTitle: "$(OSName) Live Tests - $(TestTarget) Node $(NodeVersion)"
+          testRunTitle: "$(OSName) - $(TestTarget) - Live Tests [Node $(NodeVersion)]"
         condition: succeededOrFailed()
         displayName: "Publish node test results"
