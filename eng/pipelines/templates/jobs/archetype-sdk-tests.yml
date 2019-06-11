@@ -22,30 +22,33 @@ parameters:
       OSVmImage: "macOS-10.13"
       TestType: "browser"
 
+variables:
+  ProcessedMatrix:
+    ${{ each matrixEntry in parameters.Matrix }}:
+      # TestResultsFiles
+      ${{ if eq(parameters.TestType, 'browser' )}}:
+        TestResultsFiles: "**/test-results.browser.xml"
+      ${{ if eq(parameters.TestType, 'node') }}:
+        TestResultsFiles: "**/test-results.xml"
+
+      # OSName:
+      ${{ if eq(parameters.OSVmImage, 'ubuntu-16.04') }}:
+        OSName: "Linux"
+      ${{ if eq(parameters.OSVmImage, 'vs2017-win2016') }}:
+        OSName: "Windows"
+      ${{ if eq(parameters.OSVmImage, 'macOS-10.13') }}:
+        OSName: "Mac"
+
+      # Remaining entries from the matrix object
+      ${{ insert }}: ${{ matrixEntry.value }}
+
 jobs:
   - job: "Test"
     variables:
       - template: ../variables/globals.yml
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
-      matrix:
-        ${{ each matrixEntry in parameters.Matrix }}:
-          # TestResultsFiles
-          ${{ if eq(parameters.TestType, 'browser' )}}:
-            TestResultsFiles: "**/test-results.browser.xml"
-          ${{ if eq(parameters.TestType, 'node') }}:
-            TestResultsFiles: "**/test-results.xml"
-
-          # OSName:
-          ${{ if eq(parameters.OSVmImage, 'ubuntu-16.04') }}:
-            OSName: "Linux"
-          ${{ if eq(parameters.OSVmImage, 'vs2017-win2016') }}:
-            OSName: "Windows"
-          ${{ if eq(parameters.OSVmImage, 'macOS-10.13') }}:
-            OSName: "Mac"
-
-          # Remaining entries from the matrix object
-          ${{ insert }}: ${{ matrixEntry.value }}
+      matrix: $(ProcessedMatrix)
 
     pool:
       vmImage: "$(OSVmImage)"
