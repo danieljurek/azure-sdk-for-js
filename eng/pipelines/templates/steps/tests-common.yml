@@ -4,6 +4,7 @@ parameters:
   TestType: ""
   EnvVars: []
   OSName: ""
+  TestResultsFiles: ""
 
 steps:
   - powershell: |
@@ -43,11 +44,6 @@ steps:
   - task: PublishTestResults@2
     inputs:
       testRunTitle: "${{ parameters.OSName }} - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"
-
-      ${{ if eq(parameters.TestType, 'browser' ) }}:
-        testResultsFiles: "**/test-results.browser.xml"
-      ${{ if eq(parameters.TestType, 'node') }}:
-        testResultsFiles: "**/test-results.xml"
-
+      testResultsFiles: ${{ parameters.TestResultsFiles }}
     condition: succeededOrFailed()
     displayName: "Publish Test Results: ${{ parameters.OSName }} - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"

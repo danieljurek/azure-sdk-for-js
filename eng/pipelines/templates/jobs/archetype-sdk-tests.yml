@@ -26,13 +26,26 @@ jobs:
   - job: "Test"
     variables:
       - template: ../variables/globals.yml
-      - template: ../variables/os-name.yml
-        parameters:
-          OSVmImage: "$(OSVmImage)"
-
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
-      matrix: ${{ parameters.Matrix }}
+      matrix:
+        ${{ each matrixEntry in parameters.Matrix }}:
+          # TestResultsFiles
+          ${{ if eq(parameters.TestType, 'browser' )}}:
+            TestResultsFiles: "**/test-results.browser.xml"
+          ${{ if eq(parameters.TestType, 'node') }}:
+            TestResultsFiles: "**/test-results.xml"
+
+          # OSName:
+          ${{ if eq(parameters.OSVmImage, 'ubuntu-16.04') }}:
+            OSName: "Linux"
+          ${{ if eq(parameters.OSVmImage, 'vs2017-win2016') }}:
+            OSName: "Windows"
+          ${{ if eq(parameters.OSVmImage, 'macOS-10.13') }}:
+            OSName: "Mac"
+
+          # Remaining entries from the matrix object
+          ${{ insert }}: ${{ matrixEntry.value }}
 
     pool:
       vmImage: "$(OSVmImage)"
@@ -46,4 +59,5 @@ jobs:
           PackageName: ${{ parameters.PackageName }}
           TestType: $(TestType)
           EnvVars: ${{ parameters.EnvVars }}
-          OSName: "$(OSName)"
+          OSName: $(OSName)
+          TestResultsFiles: $(TestResultsFiles)
