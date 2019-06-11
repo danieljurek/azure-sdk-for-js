@@ -24,9 +24,10 @@ jobs:
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
       matrix:
-        ${{ each TestTarget in parameters.TestTargets }}
-          ${{ each Entry in parameters.Matrix }}
+        ${{ each TestTarget in parameters.TestTargets }}:
+          ${{ each Entry in parameters.Matrix }}:
             ${{ Entry.key }}_${{ TestTarget }}: ${{ Entry.value }}
+
     pool:
       vmImage: "$(OSVmImage)"
 
