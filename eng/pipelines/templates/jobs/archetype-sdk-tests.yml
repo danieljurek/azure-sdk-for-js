@@ -28,7 +28,7 @@ jobs:
       - template: ../variables/globals.yml
       - template: ../variables/os-name.yml
         parameters:
-          OSVmImage: $(OSVmImage)
+          OSVmImage: "$(OSVmImage)"
 
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
@@ -46,4 +46,4 @@ jobs:
           PackageName: ${{ parameters.PackageName }}
           TestType: $(TestType)
           EnvVars: ${{ parameters.EnvVars }}
-          OSName: $(OSName)
+          OSName: "$(OSName)"
