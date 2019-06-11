@@ -46,7 +46,7 @@ jobs:
             OSName: "Mac"
 
           # Remaining entries from the matrix object
-          ${{ insert }}: ${{ matrixEntry.value }}
+          ${{ matrixEntry }}
 
     pool:
       vmImage: "$(OSVmImage)"
