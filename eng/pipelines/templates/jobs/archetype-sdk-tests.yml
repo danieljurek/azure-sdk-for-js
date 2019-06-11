@@ -26,8 +26,7 @@ jobs:
       matrix:
         ${{ each TestTarget in parameters.TestTargets }}
           ${{ each Entry in parameters.Matrix }}
-            - ${{ Entry.key }}_${{ TestTarget }}
-              ${{ Entry }}
+            ${{ Entry.key }}_${{ TestTarget }}: ${{ Entry.value }}
     pool:
       vmImage: "$(OSVmImage)"
 
