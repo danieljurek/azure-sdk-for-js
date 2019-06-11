@@ -3,6 +3,7 @@ parameters:
   PackageName: ""
   TestType: ""
   EnvVars: []
+  OSName: ""
 
 steps:
   - task: NodeTool@0
@@ -29,7 +30,7 @@ steps:
 
   - task: PublishTestResults@2
     inputs:
-      testRunTitle: "$(OSName) - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"
+      testRunTitle: "${{ parameters.OSName }} - ${{ parameters.TestType }} - Tests [Node ${{ parameters.NodeVersion }}]"
 
       ${{ if eq(parameters.TestType, 'browser' )}}:
         testResultsFiles: "**/test-results.browser.xml"

@@ -46,4 +46,4 @@ jobs:
           PackageName: ${{ parameters.PackageName }}
           TestType: $(TestType)
           EnvVars: ${{ parameters.EnvVars }}
-          OSVmImage: $(OSVmImage)
+          OSName: $(OSName)
