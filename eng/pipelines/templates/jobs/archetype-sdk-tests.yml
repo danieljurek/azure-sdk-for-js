@@ -26,28 +26,10 @@ jobs:
   - job: "Test"
     variables:
       - template: ../variables/globals.yml
-
+      - template: ../variables/matrix-generator.yml
     strategy:
       maxParallel: ${{ parameters.MaxParallel }}
-      matrix:
-        ${{ each matrixEntry in parameters.Matrix }}:
-          ${{ matrixEntry.key }}:
-            # TestResultsFiles
-            ${{ if eq(matrixEntry.value.TestType, 'browser' )}}:
-              TestResultsFiles: "**/test-results.browser.xml"
-            ${{ if eq(matrixEntry.value.TestType, 'node') }}:
-              TestResultsFiles: "**/test-results.xml"
-
-            # OSName:
-            ${{ if eq(matrixEntry.value.OSVmImage, 'ubuntu-16.04') }}:
-              OSName: "Linux"
-            ${{ if eq(matrixEntry.value.OSVmImage, 'vs2017-win2016') }}:
-              OSName: "Windows"
-            ${{ if eq(matrixEntry.value.OSVmImage, 'macOS-10.13') }}:
-              OSName: "Mac"
-
-            # Remaining entries from the matrix object
-            ${{ insert }}: ${{ matrixEntry.value }}
+      matrix: $(GeneratedMatrix)
 
     pool:
       vmImage: "$(OSVmImage)"

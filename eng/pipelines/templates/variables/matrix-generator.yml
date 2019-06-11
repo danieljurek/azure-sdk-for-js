@@ -3,20 +3,21 @@ parameters:
 
 variables:
   GeneratedMatrix:
-    - ${{ each matrixEntry in parameters.Matrix }}:
-      # TestResultsFiles
-      ${{ if eq(matrixEntry.TestType, 'browser' )}}:
-        TestResultsFiles: "**/test-results.browser.xml"
-      ${{ if eq(matrixEntry.TestType, 'node') }}:
-        TestResultsFiles: "**/test-results.xml"
+    ${{ each matrixEntry in parameters.Matrix }}:
+      ${{ matrixEntry.key }}:
+        # TestResultsFiles
+        ${{ if eq(matrixEntry.value.TestType, 'browser' )}}:
+          TestResultsFiles: "**/test-results.browser.xml"
+        ${{ if eq(matrixEntry.value.TestType, 'node') }}:
+          TestResultsFiles: "**/test-results.xml"
 
-      # OSName:
-      ${{ if eq(matrixEntry.OSVmImage, 'ubuntu-16.04') }}:
-        OSName: "Linux"
-      ${{ if eq(matrixEntry.OSVmImage, 'vs2017-win2016') }}:
-        OSName: "Windows"
-      ${{ if eq(matrixEntry.OSVmImage, 'macOS-10.13') }}:
-        OSName: "Mac"
+        # OSName:
+        ${{ if eq(matrixEntry.value.OSVmImage, 'ubuntu-16.04') }}:
+          OSName: "Linux"
+        ${{ if eq(matrixEntry.value.OSVmImage, 'vs2017-win2016') }}:
+          OSName: "Windows"
+        ${{ if eq(matrixEntry.value.OSVmImage, 'macOS-10.13') }}:
+          OSName: "MacOS"
 
-      # Remaining entries from the matrix object
-      ${{ insert }}: ${{ matrixEntry.value }}
+        # Remaining entries from the matrix object
+        ${{ insert }}: ${{ matrixEntry.value }}
