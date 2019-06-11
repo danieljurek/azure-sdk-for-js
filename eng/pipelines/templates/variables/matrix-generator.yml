@@ -5,17 +5,17 @@ variables:
   GeneratedMatrix:
     ${{ each matrixEntry in parameters.Matrix }}:
       # TestResultsFiles
-      ${{ if eq(parameters.TestType, 'browser' )}}:
+      ${{ if eq(matrixEntry.TestType, 'browser' )}}:
         TestResultsFiles: "**/test-results.browser.xml"
-      ${{ if eq(parameters.TestType, 'node') }}:
+      ${{ if eq(matrixEntry.TestType, 'node') }}:
         TestResultsFiles: "**/test-results.xml"
 
       # OSName:
-      ${{ if eq(parameters.OSVmImage, 'ubuntu-16.04') }}:
+      ${{ if eq(matrixEntry.OSVmImage, 'ubuntu-16.04') }}:
         OSName: "Linux"
-      ${{ if eq(parameters.OSVmImage, 'vs2017-win2016') }}:
+      ${{ if eq(matrixEntry.OSVmImage, 'vs2017-win2016') }}:
         OSName: "Windows"
-      ${{ if eq(parameters.OSVmImage, 'macOS-10.13') }}:
+      ${{ if eq(matrixEntry.OSVmImage, 'macOS-10.13') }}:
         OSName: "Mac"
 
       # Remaining entries from the matrix object
