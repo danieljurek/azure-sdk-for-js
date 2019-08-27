@@ -3,7 +3,7 @@ steps:
       $localEtag = ""
       try {
         $localEtag = Get-Content "$env:ProgramFiles\Azure Cosmos DB Emulator\etag.txt"
-      } 
+      }
       catch {}
       Write-Host "Local emulator etag $localEtag"
       $headResponse = Invoke-WebRequest 'https://aka.ms/cosmosdb-emulator' -Method 'HEAD'
@@ -23,7 +23,7 @@ steps:
         dir "$env:ProgramFiles\"
         choco install lessmsi
         choco upgrade lessmsi
-        Write-Host "Checking directory" 
+        Write-Host "Checking directory"
         dir "$env:ProgramFiles"
         mkdir "$env:ProgramFiles\Azure Cosmos DB Emulator"
         lessmsi x "$env:temp\azure-cosmosdb-emulator.msi" "$env:ProgramFiles\Azure Cosmos DB Emulator\"
@@ -37,3 +37,13 @@ steps:
       Write-Host "Starting Comsos DB Emulator"
       Start-Process "$env:ProgramFiles\Azure Cosmos DB Emulator\SourceDir\Azure Cosmos DB Emulator\CosmosDB.Emulator.exe" "/NoExplorer /NoUI" -Verb RunAs
     displayName: "Refresh and Run Public Cosmos DB Emulator"
+
+  - powershell: |
+      Import-Module "$env:ProgramFiles\Azure Cosmos DB Emulator\SourceDir\Azure Cosmos DB Emulator\PSModules\Microsoft.Azure.CosmosDB.Emulator"
+      Do {
+          sleep 5
+          $cosmosStatus = Get-CosmosDbEmulatorStatus
+          Write-Host "Cosmos Status: $cosmosStatus"
+      } While ($cosmosStatus -ne 'Running')
+      Write-Host "Done"
+    displayName: "Check Public Cosmos DB Emulator Status"
