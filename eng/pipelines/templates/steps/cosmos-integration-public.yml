@@ -4,7 +4,7 @@ parameters:
 steps:
   - powershell: |
       Write-Host "Downloading Cosmos Emulator - ${{ parameters.EmulatorMsiUrl }}"
-      wget  ${{ parameters.EmulatorMsiUrl }}" -outfile "$env:temp\azure-cosmosdb-emulator.msi"
+      wget  "${{ parameters.EmulatorMsiUrl }}" -outfile "$env:temp\azure-cosmosdb-emulator.msi"
       Write-Host "Finished Downloading Cosmos Emulator - $env:temp\azure-cosmosdb-emulator.msi"
       dir "$env:temp"
     displayName: "Download Public Cosmos DB Emulator"
