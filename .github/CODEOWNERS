@@ -36,6 +36,10 @@
 
 /sdk/search/ @xirzec
 
+# Smoke tests
+# Includes service owners for services that have smoke tests
+/common/smoke-test/ @danieljurek @ramya-rao-a @chradek @richardpark-msft @jonathandturner @sadasant @XiaoningLiu @jeremymeng @HarshaNalluru @vinjiang @jiacfan @ljian3377 @southpolesteve
+
 # API review files
 /sdk/**/review/*api.md @bterlson
 
