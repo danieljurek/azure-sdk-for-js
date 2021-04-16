@@ -24,7 +24,7 @@ import {
   deferMessage,
   getMessageIterator,
   wrapProcessErrorHandler
-} from "./shared";
+} from "./receiverCommon";
 import { defaultMaxTimeAfterFirstMessageForBatchingMs, ServiceBusReceiver } from "./receiver";
 import Long from "long";
 import { ServiceBusMessageImpl, DeadLetterOptions } from "../serviceBusMessage";
@@ -87,9 +87,9 @@ export interface ServiceBusSessionReceiver extends ServiceBusReceiver {
 
   /**
    * Gets the state of the Session. For more on session states, see
-   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state Session State}
+   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state | Session State}
    * @param options - Options bag to pass an abort signal or tracing options.
-   * @returns {Promise<any>} The state of that session
+   * @returns The state of that session
    * @throws Error if the underlying connection or receiver is closed.
    * @throws `ServiceBusError` if the service returns an error while retrieving session state.
    */
@@ -97,13 +97,12 @@ export interface ServiceBusSessionReceiver extends ServiceBusReceiver {
 
   /**
    * Sets the state on the Session. For more on session states, see
-   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state Session State}
+   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state | Session State}
    * @param state - The state that needs to be set.
    * @param options - Options bag to pass an abort signal or tracing options.
    * @throws Error if the underlying connection or receiver is closed.
    * @throws `ServiceBusError` if the service returns an error while setting the session state.
    *
-   * @returns {Promise<void>}
    */
   setSessionState(state: any, options?: OperationOptionsBase): Promise<void>;
 }
@@ -121,7 +120,7 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
 
   private _createProcessingSpan: typeof createProcessingSpan;
 
-  private get logPrefix() {
+  private get logPrefix(): string {
     return `[${this._context.connectionId}|session:${this.entityPath}]`;
   }
 
@@ -204,13 +203,13 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
    * will land back in the Queue/Subscription with their delivery count incremented.
    *
    * @param options - Options bag to pass an abort signal or tracing options.
-   * @returns Promise<Date> - New lock token expiry date and time in UTC format.
+   * @returns New lock token expiry date and time in UTC format.
    * @throws Error if the underlying connection or receiver is closed.
    * @throws `ServiceBusError` if the service returns an error while renewing session lock.
    */
   async renewSessionLock(options?: OperationOptionsBase): Promise<Date> {
     this._throwIfReceiverOrConnectionClosed();
-    const renewSessionLockOperationPromise = async () => {
+    const renewSessionLockOperationPromise = async (): Promise<Date> => {
       this._messageSession!.sessionLockedUntilUtc = await this._context
         .getManagementClient(this.entityPath)
         .renewSessionLock(this.sessionId, {
@@ -233,16 +232,16 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
 
   /**
    * Sets the state on the Session. For more on session states, see
-   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state Session State}
+   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state | Session State}
    * @param state - The state that needs to be set.
    * @param options - Options bag to pass an abort signal or tracing options.
    * @throws Error if the underlying connection or receiver is closed.
    * @throws `ServiceBusError` if the service returns an error while setting the session state.
    */
-  async setSessionState(state: any, options: OperationOptionsBase = {}): Promise<void> {
+  async setSessionState(state: unknown, options: OperationOptionsBase = {}): Promise<void> {
     this._throwIfReceiverOrConnectionClosed();
 
-    const setSessionStateOperationPromise = async () => {
+    const setSessionStateOperationPromise = async (): Promise<void> => {
       await this._context
         .getManagementClient(this.entityPath)
         .setSessionState(this.sessionId!, state, {
@@ -265,16 +264,16 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
 
   /**
    * Gets the state of the Session. For more on session states, see
-   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state Session State}
+   * {@link https://docs.microsoft.com/azure/service-bus-messaging/message-sessions#message-session-state | Session State}
    * @param options - Options bag to pass an abort signal or tracing options.
-   * @returns Promise<any> The state of that session
+   * @returns The state of that session
    * @throws Error if the underlying connection or receiver is closed.
    * @throws `ServiceBusError` if the service returns an error while retrieving session state.
    */
   async getSessionState(options: OperationOptionsBase = {}): Promise<any> {
     this._throwIfReceiverOrConnectionClosed();
 
-    const getSessionStateOperationPromise = async () => {
+    const getSessionStateOperationPromise = async (): Promise<any> => {
       return this._context.getManagementClient(this.entityPath).getSessionState(this.sessionId, {
         ...options,
         associatedLinkName: this._messageSession.name,
@@ -304,9 +303,9 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
       requestName: "peekMessages",
       timeoutInMs: this._retryOptions?.timeoutInMs
     };
-    const peekOperationPromise = async () => {
+    const peekOperationPromise = async (): Promise<ServiceBusReceivedMessage[]> => {
       if (options.fromSequenceNumber) {
-        return await this._context
+        return this._context
           .getManagementClient(this.entityPath)
           .peekBySequenceNumber(
             options.fromSequenceNumber,
@@ -315,7 +314,7 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
             managementRequestOptions
           );
       } else {
-        return await this._context
+        return this._context
           .getManagementClient(this.entityPath)
           .peekMessagesBySession(this.sessionId, maxMessageCount, managementRequestOptions);
       }
@@ -350,7 +349,7 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
     const deferredSequenceNumbers = Array.isArray(sequenceNumbers)
       ? sequenceNumbers
       : [sequenceNumbers];
-    const receiveDeferredMessagesOperationPromise = async () => {
+    const receiveDeferredMessagesOperationPromise = async (): Promise<ServiceBusReceivedMessage[]> => {
       const deferredMessages = await this._context
         .getManagementClient(this.entityPath)
         .receiveDeferredMessages(deferredSequenceNumbers, this.receiveMode, this.sessionId, {
@@ -393,7 +392,7 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
       throw new TypeError(InvalidMaxMessageCountError);
     }
 
-    const receiveBatchOperationPromise = async () => {
+    const receiveBatchOperationPromise = async (): Promise<ServiceBusReceivedMessage[]> => {
       const receivedMessages = await this._messageSession!.receiveMessages(
         maxMessageCount,
         options?.maxWaitTimeInMs ?? Constants.defaultOperationTimeoutInMs,
@@ -461,7 +460,6 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
    * also provide a timeout in milliseconds to denote the amount of time to wait for a new message
    * before closing the receiver.
    *
-   * @returns void
    * @throws Error if the underlying connection or receiver is closed.
    * @throws Error if the receiver is already in state of receiving messages.
    * @throws `ServiceBusError` if the service returns an error while receiving messages. These are bubbled up to be handled by user provided `onError` handler.
@@ -505,7 +503,7 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
     this._throwIfReceiverOrConnectionClosed();
     throwErrorIfInvalidOperationOnMessage(message, this.receiveMode, this._context.connectionId);
     const msgImpl = message as ServiceBusMessageImpl;
-    return completeMessage(msgImpl, this._context, this.entityPath);
+    return completeMessage(msgImpl, this._context, this.entityPath, this._retryOptions);
   }
 
   async abandonMessage(
@@ -515,7 +513,13 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
     this._throwIfReceiverOrConnectionClosed();
     throwErrorIfInvalidOperationOnMessage(message, this.receiveMode, this._context.connectionId);
     const msgImpl = message as ServiceBusMessageImpl;
-    return abandonMessage(msgImpl, this._context, this.entityPath, propertiesToModify);
+    return abandonMessage(
+      msgImpl,
+      this._context,
+      this.entityPath,
+      propertiesToModify,
+      this._retryOptions
+    );
   }
 
   async deferMessage(
@@ -525,7 +529,13 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
     this._throwIfReceiverOrConnectionClosed();
     throwErrorIfInvalidOperationOnMessage(message, this.receiveMode, this._context.connectionId);
     const msgImpl = message as ServiceBusMessageImpl;
-    return deferMessage(msgImpl, this._context, this.entityPath, propertiesToModify);
+    return deferMessage(
+      msgImpl,
+      this._context,
+      this.entityPath,
+      propertiesToModify,
+      this._retryOptions
+    );
   }
 
   async deadLetterMessage(
@@ -535,7 +545,7 @@ export class ServiceBusSessionReceiverImpl implements ServiceBusSessionReceiver 
     this._throwIfReceiverOrConnectionClosed();
     throwErrorIfInvalidOperationOnMessage(message, this.receiveMode, this._context.connectionId);
     const msgImpl = message as ServiceBusMessageImpl;
-    return deadLetterMessage(msgImpl, this._context, this.entityPath, options);
+    return deadLetterMessage(msgImpl, this._context, this.entityPath, options, this._retryOptions);
   }
 
   async renewMessageLock(): Promise<Date> {

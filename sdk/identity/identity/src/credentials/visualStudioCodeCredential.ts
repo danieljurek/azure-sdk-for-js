@@ -9,12 +9,13 @@ import path from "path";
 
 let keytar: any;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   keytar = require("keytar");
 } catch (er) {
   keytar = null;
 }
 
-import { CredentialUnavailable } from "../client/errors";
+import { CredentialUnavailableError } from "../client/errors";
 import { credentialLogger, formatSuccess, formatError } from "../util/logging";
 import { AzureAuthorityHosts } from "../constants";
 import { checkTenantId } from "../util/checkTenantId";
@@ -33,7 +34,7 @@ function checkUnsupportedTenant(tenantId: string): void {
   // If the Tenant ID isn't supported, we throw.
   const unsupportedTenantError = unsupportedTenantIds[tenantId];
   if (unsupportedTenantError) {
-    throw new CredentialUnavailable(unsupportedTenantError);
+    throw new CredentialUnavailableError(unsupportedTenantError);
   }
 }
 
@@ -121,11 +122,11 @@ export class VisualStudioCodeCredential implements TokenCredential {
 
     if (options && options.tenantId) {
       checkTenantId(logger, options.tenantId);
-
       this.tenantId = options.tenantId;
     } else {
       this.tenantId = CommonTenantId;
     }
+
     checkUnsupportedTenant(this.tenantId);
   }
 
@@ -168,10 +169,10 @@ export class VisualStudioCodeCredential implements TokenCredential {
   public async getToken(
     scopes: string | string[],
     _options?: GetTokenOptions
-  ): Promise<AccessToken | null> {
+  ): Promise<AccessToken> {
     await this.prepareOnce();
     if (!keytar) {
-      throw new CredentialUnavailable(
+      throw new CredentialUnavailableError(
         "Visual Studio Code credential requires the optional dependency 'keytar' to work correctly"
       );
     }
@@ -221,14 +222,14 @@ export class VisualStudioCodeCredential implements TokenCredential {
         logger.getToken.info(formatSuccess(scopes));
         return tokenResponse.accessToken;
       } else {
-        const error = new CredentialUnavailable(
+        const error = new CredentialUnavailableError(
           "Could not retrieve the token associated with Visual Studio Code. Have you connected using the 'Azure Account' extension recently?"
         );
         logger.getToken.info(formatError(scopes, error));
         throw error;
       }
     } else {
-      const error = new CredentialUnavailable(
+      const error = new CredentialUnavailableError(
         "Could not retrieve the token associated with Visual Studio Code. Did you connect using the 'Azure Account' extension?"
       );
       logger.getToken.info(formatError(scopes, error));

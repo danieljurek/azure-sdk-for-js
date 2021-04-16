@@ -5,7 +5,10 @@ import { HttpClient, WebResourceLike, HttpOperationResponse, HttpHeaders } from 
 import { CommunicationAccessToken } from "../../src";
 import { CommunicationIdentityAccessTokenResult } from "../../src/generated/src/models";
 
-export const createMockHttpClient = <T = {}>(status: number = 200, parsedBody?: T): HttpClient => {
+export const createMockHttpClient = <T = Record<string, unknown>>(
+  status: number = 200,
+  parsedBody?: T
+): HttpClient => {
   return {
     async sendRequest(httpRequest: WebResourceLike): Promise<HttpOperationResponse> {
       return {
@@ -28,7 +31,7 @@ const tokenResponse = {
   expiresOn: new Date("2011/11/30")
 };
 
-export const issueTokenHttpClient: HttpClient = createMockHttpClient<CommunicationAccessToken>(
+export const getTokenHttpClient: HttpClient = createMockHttpClient<CommunicationAccessToken>(
   200,
   tokenResponse
 );
@@ -38,4 +41,14 @@ export const createUserHttpClient: HttpClient = createMockHttpClient<
   CommunicationIdentityAccessTokenResult
 >(201, {
   identity: { id: "identity" }
+});
+
+export const createUserAndTokenHttpClient: HttpClient = createMockHttpClient<
+  CommunicationIdentityAccessTokenResult
+>(201, {
+  identity: { id: "identity" },
+  accessToken: {
+    token: "token",
+    expiresOn: new Date("2011/11/30")
+  }
 });

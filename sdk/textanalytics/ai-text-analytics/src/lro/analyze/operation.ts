@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {
-  AbortSignalLike,
-  OperationOptions,
-  operationOptionsToRequestOptionsBase
-} from "@azure/core-http";
+import { OperationOptions } from "@azure/core-client";
+
+import { AbortSignalLike } from "@azure/abort-controller";
 
 import {
+  AnalyzeJobState,
   GeneratedClientAnalyzeResponse as BeginAnalyzeResponse,
   GeneratedClientAnalyzeStatusOptionalParams as AnalyzeBatchActionsOperationStatusOptions,
   JobManifestTasks as GeneratedActions,
@@ -18,29 +17,21 @@ import {
 import {
   AnalyzeBatchActionsResult,
   PagedAsyncIterableAnalyzeBatchActionsResult,
-  PagedAnalyzeBatchActionsResult
+  PagedAnalyzeBatchActionsResult,
+  createAnalyzeBatchActionsResult
 } from "../../analyzeBatchActionsResult";
 import { PageSettings } from "@azure/core-paging";
 import { getOperationId, handleInvalidDocumentBatch, nextLinkToTopAndSkip } from "../../util";
 import { AnalysisPollOperation, AnalysisPollOperationState, OperationMetadata } from "../poller";
 import { GeneratedClient as Client } from "../../generated";
-import { CanonicalCode } from "@opentelemetry/api";
+import { SpanStatusCode } from "@azure/core-tracing";
 import { createSpan } from "../../tracing";
-import {
-  makeRecognizeCategorizedEntitiesResultArray,
-  RecognizeCategorizedEntitiesResultArray
-} from "../../recognizeCategorizedEntitiesResultArray";
-import {
-  makeRecognizePiiEntitiesResultArray,
-  RecognizePiiEntitiesResultArray
-} from "../../recognizePiiEntitiesResultArray";
-import {
-  ExtractKeyPhrasesResultArray,
-  makeExtractKeyPhrasesResultArray
-} from "../../extractKeyPhrasesResultArray";
 import { logger } from "../../logger";
 export { State };
 
+/**
+ * @internal
+ */
 interface AnalyzeResultsWithPagination {
   result: AnalyzeBatchActionsResult;
   top?: number;
@@ -48,7 +39,7 @@ interface AnalyzeResultsWithPagination {
 }
 
 /**
- * The metadata for beginAnalyzeBatchActionsoperations.
+ * The metadata for beginAnalyzeBatchActions operations.
  */
 export interface AnalyzeBatchActionsOperationMetadata extends OperationMetadata {
   /**
@@ -69,6 +60,9 @@ export interface AnalyzeBatchActionsOperationMetadata extends OperationMetadata 
   displayName?: string;
 }
 
+/**
+ * @internal
+ */
 interface AnalyzeBatchActionsOperationStatus {
   done: boolean;
   /**
@@ -80,6 +74,9 @@ interface AnalyzeBatchActionsOperationStatus {
   operationMetdata?: AnalyzeBatchActionsOperationMetadata;
 }
 
+/**
+ * @internal
+ */
 interface BeginAnalyzeInternalOptions extends OperationOptions {
   displayName?: string;
 }
@@ -101,7 +98,7 @@ export interface BeginAnalyzeBatchActionsOptions extends OperationOptions {
    */
   includeStatistics?: boolean;
   /**
-   * Optional display name for the operation.
+   * The operation's display name.
    */
   displayName?: string;
 }
@@ -114,8 +111,25 @@ export interface AnalyzeBatchActionsOperationState
     AnalyzeBatchActionsOperationMetadata {}
 
 /**
+ * @internal
+ */
+function getMetaInfoFromResponse(response: AnalyzeJobState): AnalyzeBatchActionsOperationMetadata {
+  return {
+    createdOn: response.createdDateTime,
+    lastModifiedOn: response.lastUpdateDateTime,
+    expiresOn: response.expirationDateTime,
+    status: response.status,
+    actionsSucceededCount: response.tasks.completed,
+    actionsFailedCount: response.tasks.failed,
+    actionsInProgressCount: response.tasks.inProgress,
+    displayName: response.displayName
+  };
+}
+
+/**
  * Class that represents a poller that waits for results of the analyze
  * operation.
+ * @internal
  */
 export class BeginAnalyzeBatchActionsPollerOperation extends AnalysisPollOperation<
   AnalyzeBatchActionsOperationState,
@@ -191,45 +205,14 @@ export class BeginAnalyzeBatchActionsPollerOperation extends AnalysisPollOperati
       options || {}
     );
     try {
-      const response = await this.client.analyzeStatus(
-        operationId,
-        operationOptionsToRequestOptionsBase(finalOptions)
-      );
-      const result: AnalyzeBatchActionsResult = {
-        recognizeEntitiesResults:
-          response.tasks.entityRecognitionTasks?.map(
-            ({ results }): RecognizeCategorizedEntitiesResultArray =>
-              makeRecognizeCategorizedEntitiesResultArray(
-                this.documents,
-                results?.documents,
-                results?.errors,
-                results?.modelVersion,
-                results?.statistics
-              )
-          ) ?? [],
-        recognizePiiEntitiesResults:
-          response.tasks.entityRecognitionPiiTasks?.map(
-            ({ results }): RecognizePiiEntitiesResultArray =>
-              makeRecognizePiiEntitiesResultArray(this.documents, results)
-          ) ?? [],
-        extractKeyPhrasesResults:
-          response.tasks.keyPhraseExtractionTasks?.map(
-            ({ results }): ExtractKeyPhrasesResultArray =>
-              makeExtractKeyPhrasesResultArray(
-                this.documents,
-                results?.documents,
-                results?.errors,
-                results?.modelVersion,
-                results?.statistics
-              )
-          ) ?? []
-      };
+      const response = await this.client.analyzeStatus(operationId, finalOptions);
+      const result = createAnalyzeBatchActionsResult(response, this.documents);
       return response.nextLink
         ? { result, ...nextLinkToTopAndSkip(response.nextLink) }
         : { result };
     } catch (e) {
       span.setStatus({
-        code: CanonicalCode.UNKNOWN,
+        code: SpanStatusCode.ERROR,
         message: e.message
       });
       throw e;
@@ -251,48 +234,23 @@ export class BeginAnalyzeBatchActionsPollerOperation extends AnalysisPollOperati
       options || {}
     );
     try {
-      const response = await this.client.analyzeStatus(
-        operationId,
-        operationOptionsToRequestOptionsBase(finalOptions)
-      );
+      const response = await this.client.analyzeStatus(operationId, finalOptions);
       switch (response.status) {
-        case "partiallySucceeded":
-        case "succeeded": {
-          return {
-            done: true,
-            statistics: response.statistics,
-            operationMetdata: {
-              createdOn: response.createdDateTime,
-              lastModifiedOn: response.lastUpdateDateTime,
-              expiresOn: response.expirationDateTime,
-              status: response.status,
-              actionsSucceededCount: response.tasks.completed,
-              actionsFailedCount: response.tasks.failed,
-              actionsInProgressCount: response.tasks.inProgress,
-              displayName: response.displayName
-            }
-          };
-        }
-        case "failed": {
-          const errors = response.errors
-            ?.map((e) => `  code ${e.code}, message: '${e.message}'`)
-            .join("\n");
-          const message = `Analysis failed. Error(s): ${errors || ""}`;
-          throw new Error(message);
-        }
         case "notStarted":
         case "running":
           break;
         default: {
-          throw new Error(
-            `Unrecognized state of the analyze batch actions operation!: ${response.status}`
-          );
+          return {
+            done: true,
+            statistics: response.statistics,
+            operationMetdata: getMetaInfoFromResponse(response)
+          };
         }
       }
-      return { done: false };
+      return { done: false, operationMetdata: getMetaInfoFromResponse(response) };
     } catch (e) {
       span.setStatus({
-        code: CanonicalCode.UNKNOWN,
+        code: SpanStatusCode.ERROR,
         message: e.message
       });
       throw e;
@@ -318,12 +276,12 @@ export class BeginAnalyzeBatchActionsPollerOperation extends AnalysisPollOperati
           tasks: actions,
           displayName: options?.displayName
         },
-        ...operationOptionsToRequestOptionsBase(finalOptions)
+        ...finalOptions
       });
     } catch (e) {
       const exception = handleInvalidDocumentBatch(e);
       span.setStatus({
-        code: CanonicalCode.UNKNOWN,
+        code: SpanStatusCode.ERROR,
         message: exception.message
       });
       throw exception;
@@ -343,10 +301,10 @@ export class BeginAnalyzeBatchActionsPollerOperation extends AnalysisPollOperati
     if (!state.isStarted) {
       state.isStarted = true;
       const response = await this.beginAnalyzeBatchActions(this.documents, this.actions, {
+        displayName: this.options.displayName,
         tracingOptions: this.options.tracingOptions,
         requestOptions: this.options.requestOptions,
-        abortSignal: updatedAbortSignal ? updatedAbortSignal : this.options.abortSignal,
-        displayName: this.options.displayName
+        abortSignal: updatedAbortSignal ? updatedAbortSignal : this.options.abortSignal
       });
       if (!response.operationLocation) {
         throw new Error(
@@ -372,17 +330,24 @@ export class BeginAnalyzeBatchActionsPollerOperation extends AnalysisPollOperati
     state.displayName = operationStatus.operationMetdata?.displayName;
 
     if (!state.isCompleted && operationStatus.done) {
-      if (typeof options.fireProgress === "function") {
-        options.fireProgress(state);
-      }
       const pagedIterator = this.listAnalyzeBatchActionsResults(state.operationId!, {
         abortSignal: this.options.abortSignal,
-        tracingOptions: this.options.tracingOptions
+        tracingOptions: this.options.tracingOptions,
+        includeStatistics: this.options.includeStatistics,
+        onResponse: this.options.onResponse,
+        serializerOptions: this.options.serializerOptions
       });
-      state.result = Object.assign(pagedIterator, {
-        statistics: operationStatus.statistics
-      });
+      // Attach stats if the service starts to return them
+      // https://github.com/Azure/azure-sdk-for-js/issues/14139
+      // state.result = Object.assign(pagedIterator, {
+      //   statistics: operationStatus.statistics
+      // });
+      state.result = pagedIterator;
       state.isCompleted = true;
+    }
+
+    if (typeof options.fireProgress === "function") {
+      options.fireProgress(state);
     }
     return this;
   }

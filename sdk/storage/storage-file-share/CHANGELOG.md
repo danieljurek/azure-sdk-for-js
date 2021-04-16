@@ -1,5 +1,12 @@
 # Release History
 
+## 12.5.1 (Unreleased)
+
+
+## 12.5.0 (2021-03-10)
+
+- Updated Azure Storage Service API version to 2020-06-12.
+
 ## 12.4.1 (2021-02-03)
 
 - Fixed a bug where `generateFileSASQueryParameters()` won't correctly set the resource type if `FileSASSignatureValues.permissions` is not specified. Fixed issue [13223](https://github.com/Azure/azure-sdk-for-js/issues/13223).

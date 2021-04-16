@@ -110,7 +110,8 @@ export {
   SearchResourceEncryptionKey,
   SearchIndexStatistics,
   SearchServiceStatistics,
-  SearchIndexer
+  SearchIndexer,
+  LexicalNormalizer
 } from "./serviceModels";
 export { default as GeographyPoint } from "./geographyPoint";
 export { odata } from "./odata";
@@ -188,7 +189,6 @@ export {
   AnalyzeResult,
   AnalyzedTokenInfo,
   ConditionalSkill,
-  CustomEntityLookupSkill,
   KeyPhraseExtractionSkill,
   OcrSkill,
   ImageAnalysisSkill,
@@ -197,6 +197,12 @@ export {
   MergeSkill,
   EntityRecognitionSkill,
   SentimentSkill,
+  CustomEntityLookupSkill,
+  CustomEntityLookupSkillLanguage,
+  KnownCustomEntityLookupSkillLanguage,
+  DocumentExtractionSkill,
+  CustomEntity,
+  CustomEntityAlias,
   SplitSkill,
   TextTranslationSkill,
   WebApiSkill,
@@ -270,9 +276,13 @@ export {
   LexicalAnalyzer as BaseLexicalAnalyzer,
   CharFilter as BaseCharFilter,
   DataDeletionDetectionPolicy as BaseDataDeletionDetectionPolicy,
-  CustomEntityLookupSkillLanguage,
-  KnownCustomEntityLookupSkillLanguage,
-  CustomEntity,
-  CustomEntityAlias
+  LexicalNormalizerName,
+  KnownLexicalNormalizerName,
+  CustomNormalizer,
+  TokenFilterName,
+  KnownTokenFilterName,
+  CharFilterName,
+  KnownCharFilterName,
+  LexicalNormalizer as BaseLexicalNormalizer
 } from "./generated/service/models";
 export { AzureKeyCredential } from "@azure/core-auth";

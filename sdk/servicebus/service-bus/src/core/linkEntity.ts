@@ -1,7 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Constants, TokenType, defaultLock, RequestResponseLink } from "@azure/core-amqp";
+import {
+  Constants,
+  TokenType,
+  defaultLock,
+  RequestResponseLink,
+  StandardAbortMessage,
+  isSasTokenProvider
+} from "@azure/core-amqp";
 import { AccessToken } from "@azure/core-auth";
 import { ConnectionContext } from "../connectionContext";
 import {
@@ -12,10 +19,9 @@ import {
   ReceiverOptions,
   SenderOptions
 } from "rhea-promise";
-import { getUniqueName, StandardAbortMessage } from "../util/utils";
+import { getUniqueName } from "../util/utils";
 import { AbortError, AbortSignalLike } from "@azure/abort-controller";
 import { ServiceBusLogger } from "../log";
-import { SharedKeyCredential } from "../servicebusSharedKeyCredential";
 import { ServiceBusError } from "../serviceBusError";
 
 /**
@@ -48,10 +54,14 @@ export interface RequestResponseLinkOptions {
 /**
  * @internal
  */
-export type ReceiverType =
+export type NonSessionReceiverType =
   | "batching" // batching receiver
-  | "streaming" // streaming receiver;
-  | "session"; // message session
+  | "streaming"; // streaming receiver
+
+/**
+ * @internal
+ */
+export type ReceiverType = NonSessionReceiverType | "session"; // message session
 
 /**
  * @internal
@@ -186,7 +196,6 @@ export abstract class LinkEntity<LinkT extends Receiver | AwaitableSender | Requ
 
   /**
    * Determines whether the AMQP link is open. If open then returns true else returns false.
-   * @returns boolean
    */
   isOpen(): boolean {
     const result: boolean = this._link ? this._link.isOpen() : false;
@@ -199,7 +208,7 @@ export abstract class LinkEntity<LinkT extends Receiver | AwaitableSender | Requ
    * is implemented by child classes.
    *
    * @returns A Promise that resolves when the link has been properly initialized
-   * @throws {AbortError} if the link has been closed via 'close'
+   * @throws `AbortError` if the link has been closed via 'close'
    */
   async initLink(options: LinkOptionsT<LinkT>, abortSignal?: AbortSignalLike): Promise<void> {
     // we'll check that the connection isn't in the process of recycling (and if so, wait for it to complete)
@@ -365,7 +374,6 @@ export abstract class LinkEntity<LinkT extends Receiver | AwaitableSender | Requ
   /**
    * Negotiates the cbs claim for the ClientEntity.
    * @param setTokenRenewal - Set the token renewal timer. Default false.
-   * @returns Promise<void>
    */
   private async _negotiateClaim(setTokenRenewal?: boolean): Promise<void> {
     this._logger.verbose(`${this._logPrefix} negotiateclaim() has been called`);
@@ -392,16 +400,12 @@ export abstract class LinkEntity<LinkT extends Receiver | AwaitableSender | Requ
     });
     let tokenObject: AccessToken;
     let tokenType: TokenType;
-    if (this._context.tokenCredential instanceof SharedKeyCredential) {
+    if (isSasTokenProvider(this._context.tokenCredential)) {
       tokenObject = this._context.tokenCredential.getToken(this.audience);
       tokenType = TokenType.CbsTokenTypeSas;
 
-      // expiresOnTimestamp can be 0 if the token is not meant to be renewed
-      // (ie, SharedAccessSignatureCredential)
-      if (tokenObject.expiresOnTimestamp > 0) {
-        // renew sas token in every 45 minutes
-        this._tokenTimeout = (3600 - 900) * 1000;
-      }
+      // renew sas token in every 45 minutes
+      this._tokenTimeout = (3600 - 900) * 1000;
     } else {
       const aadToken = await this._context.tokenCredential.getToken(Constants.aadServiceBusScope);
       if (!aadToken) {
@@ -450,7 +454,7 @@ export abstract class LinkEntity<LinkT extends Receiver | AwaitableSender | Requ
    * we need to _not_ use it otherwise we'll trigger some race conditions
    * within rhea (for instance, errors about _process not being defined).
    */
-  private checkIfConnectionReady() {
+  private checkIfConnectionReady(): void {
     if (!this._context.isConnectionClosing()) {
       return;
     }
@@ -468,7 +472,6 @@ export abstract class LinkEntity<LinkT extends Receiver | AwaitableSender | Requ
 
   /**
    * Ensures that the token is renewed within the predefined renewal margin.
-   * @returns {void}
    */
   private _ensureTokenRenewal(): void {
     if (!this._tokenTimeout) {

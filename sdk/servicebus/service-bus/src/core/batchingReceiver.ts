@@ -31,14 +31,14 @@ export class BatchingReceiver extends MessageReceiver {
   /**
    * Instantiate a new BatchingReceiver.
    *
-   * @param context - The client entity context.
+   * @param connectionContext - The client entity context.
    * @param options - Options for how you'd like to connect.
    */
-  constructor(context: ConnectionContext, entityPath: string, options: ReceiveOptions) {
-    super(context, entityPath, "batching", options);
+  constructor(connectionContext: ConnectionContext, entityPath: string, options: ReceiveOptions) {
+    super(connectionContext, entityPath, "batching", options);
 
     this._batchingReceiverLite = new BatchingReceiverLite(
-      context,
+      connectionContext,
       entityPath,
       async (abortSignal?: AbortSignalLike): Promise<MinimalReceiver | undefined> => {
         let lastError: Error | AmqpError | undefined;
@@ -50,11 +50,15 @@ export class BatchingReceiver extends MessageReceiver {
           onSessionError: (context) => {
             lastError = context?.session?.error;
           },
-          // ignored for now - the next call will just fail so they'll get an appropriate error from somewhere else.
-          onClose: async () => {},
-          onSessionClose: async () => {},
-          // we don't add credits initially so we don't need to worry about handling any messages.
-          onMessage: async () => {}
+          onClose: async () => {
+            /** Nothing to do here - the next call will just fail so they'll get an appropriate error from somewhere else. */
+          },
+          onSessionClose: async () => {
+            /** Nothing to do here - the next call will just fail so they'll get an appropriate error from somewhere else. */
+          },
+          onMessage: async () => {
+            /** Nothing to do here -  we don't add credits initially so we don't need to worry about handling any messages.*/
+          }
         });
 
         await this._init(rcvrOptions, abortSignal);
@@ -78,7 +82,6 @@ export class BatchingReceiver extends MessageReceiver {
   /**
    * To be called when connection is disconnected to gracefully close ongoing receive request.
    * @param connectionError - The connection error if any.
-   * @returns {Promise<void>} Promise<void>.
    */
   async onDetached(connectionError?: AmqpError | Error): Promise<void> {
     await this.closeLink();
@@ -100,7 +103,7 @@ export class BatchingReceiver extends MessageReceiver {
    * @param maxTimeAfterFirstMessageInMs - The total amount of time to wait after the first message
    * has been received. Defaults to 1 second.
    * If this time elapses before the `maxMessageCount` is reached, then messages collected till then will be returned to the user.
-   * @returns {Promise<ServiceBusMessageImpl[]>} A promise that resolves with an array of Message objects.
+   * @returns A promise that resolves with an array of Message objects.
    */
   async receive(
     maxMessageCount: number,
@@ -109,7 +112,6 @@ export class BatchingReceiver extends MessageReceiver {
     options: OperationOptionsBase
   ): Promise<ServiceBusMessageImpl[]> {
     throwErrorIfConnectionClosed(this._context);
-
     try {
       logger.verbose(
         "[%s] Receiver '%s', setting max concurrent calls to 0.",
@@ -298,7 +300,7 @@ export class BatchingReceiverLite {
    *
    * @param connectionError - An optional error (rhea doesn't always deliver one for certain disconnection events)
    */
-  terminate(connectionError?: Error | AmqpError) {
+  terminate(connectionError?: Error | AmqpError): void {
     if (this._closeHandler) {
       this._closeHandler(connectionError);
       this._closeHandler = undefined;
@@ -324,17 +326,17 @@ export class BatchingReceiverLite {
     // eslint-disable-next-line prefer-const
     let cleanupBeforeResolveOrReject: () => void;
 
-    const reject = (err: Error | AmqpError) => {
+    const reject = (err: Error | AmqpError): void => {
       cleanupBeforeResolveOrReject();
       origReject(err);
     };
 
-    const resolveImmediately = (result: ServiceBusMessageImpl[]) => {
+    const resolveImmediately = (result: ServiceBusMessageImpl[]): void => {
       cleanupBeforeResolveOrReject();
       origResolve(result);
     };
 
-    const resolveAfterPendingMessageCallbacks = (result: ServiceBusMessageImpl[]) => {
+    const resolveAfterPendingMessageCallbacks = (result: ServiceBusMessageImpl[]): void => {
       // NOTE: through rhea-promise, most of our event handlers are made asynchronous by calling setTimeout(emit).
       // However, a small set (*error and drain) execute immediately. This can lead to a situation where the logical
       // ordering of events is correct but the execution order is incorrect because the events are not all getting

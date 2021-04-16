@@ -39,16 +39,18 @@ export const environmentSetup: RecorderEnvironmentSetup = {
   customizationsOnRecordings: [
     (recording: string): string =>
       recording.replace(/"token"\s?:\s?"[^"]*"/g, `"token":"sanitized"`),
-    (recording: string): string => recording.replace(/(https:\/\/)([^\/',]*)/, "$1endpoint"),
+    (recording: string): string =>
+      recording.replace(/"access_token"\s?:\s?"[^"]*"/g, `"access_token":"sanitized"`),
+    (recording: string): string => recording.replace(/(https:\/\/)([^/',]*)/, "$1endpoint"),
     (recording: string): string => recording.replace(/"id"\s?:\s?"[^"]*"/g, `"id":"sanitized"`),
     (recording: string): string => {
       return recording.replace(
-        /(https:\/\/[^\/',]*\/identities\/)[^\/',]*(\/token)/,
+        /(https:\/\/[^/',]*\/identities\/)[^/',]*(\/token)/,
         "$1sanitized$2"
       );
     },
     (recording: string): string =>
-      recording.replace(/\/identities\/[^\/'",]*/, "/identities/sanitized"),
+      recording.replace(/\/identities\/[^/'",]*/, "/identities/sanitized"),
     (recording: string): string => recording.replace(/\+\d{1}\d{3}\d{3}\d{4}/g, "+18005551234"),
     (recording: string): string =>
       recording.replace(/[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}/gi, "sanitized")
